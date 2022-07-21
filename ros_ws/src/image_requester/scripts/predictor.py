@@ -24,21 +24,9 @@ def callback(data):
         processed_image_pub = rospy.Publisher('processed_image', CompressedImage, queue_size=10)
         # print(returned_predictions)
         if len(returned_predictions)>0:
-            np_array = np.frombuffer(data.data, np.uint8)
-            image_np = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
-            for p in returned_predictions:
-                # print(p)
-                start_point, end_point = find_points(p)
-                colour = get_colour(p)
-                cv2.rectangle(image_np,start_point,end_point,colour,2)
-                mid_point = find_midpoint(start_point, end_point)
-                name = p["tagName"] + " %"+str(round(100*p["probability"]))
-                cv2.putText(image_np, name,mid_point,font,2,colour,2,cv2.LINE_AA)
-            processed_image = CompressedImage()
-            processed_image.header = data.header
-            processed_image.header.stamp = rospy.Time.now()
-            processed_image.data = np.array(cv2.imencode('.jpg', image_np)[1]).tobytes()
-            processed_image.format = data.format
+            image_np = get_image(data.data)
+            draw_rectangle(returned_predictions, image_np)
+            processed_image = prepare_processed_image(data, image_np)
             processed_image_pub.publish(processed_image)
     except OSError:
         rospy.logwarn("Connection error, make sure docker is running and available at address: http://172.17.0.2")
